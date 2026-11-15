@@ -1,0 +1,29 @@
+{
+  "status": true,
+  "message": "Berhasil mendapatkan data",
+  "data": [
+    {
+      "exclusive_session_code": "EX79CB-SN6ADF",
+      "date": "2026-11-16",
+      "start_time": "16:30:00",
+      "end_time": "17:30:00",
+      "label": "Sesi 1",
+      "session_members": [
+        {
+          "label": "Jalur 1",
+          "price": 120000,
+          "member_name": "Desy Natalia",
+          "session_detail_code": "EX79CB-SN6ADF-SD70EC",
+          "available_quota": 5
+        },
+        {
+          "label": "Jalur 2",
+          "price": 120000,
+          "member_name": "Astrella Virgiananda",
+          "session_detail_code": "EX79CB-SN6ADF-SD0189",
+          "available_quota": 4
+        }
+      ]
+    }
+  ]
+}

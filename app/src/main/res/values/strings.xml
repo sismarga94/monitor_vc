@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JKT48 Bonus Monitor</string>
+    <string name="notification_channel_name">Bonus Quota Alerts</string>
+    <string name="notification_channel_description">Notifications for low bonus quota</string>
+</resources>

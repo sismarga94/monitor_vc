@@ -1,0 +1,59 @@
+{
+  "status": true,
+  "message": "Berhasil mendapatkan data",
+  "data": [
+    {
+      "exclusive_session_code": "EX79CB-SN6ADF",
+      "date": "2026-11-16",
+      "start_time": "16:30:00",
+      "end_time": "17:30:00",
+      "label": "Sesi 1",
+      "session_members": [
+        {
+          "label": "Jalur 1",
+          "price": 120000,
+          "member_name": "Desy Natalia",
+          "session_detail_code": "EX79CB-SN6ADF-SD70EC",
+          "available_quota": 5
+        },
+        {
+          "label": "Jalur 2",
+          "price": 120000,
+          "member_name": "Astrella Virgiananda",
+          "session_detail_code": "EX79CB-SN6ADF-SD0189",
+          "available_quota": 7
+        },
+        {
+          "label": "Jalur 3",
+          "price": 120000,
+          "member_name": "Abigail Rachel",
+          "session_detail_code": "EX79CB-SN6ADF-SDB8A1",
+          "available_quota": 0
+        }
+      ]
+    },
+    {
+      "exclusive_session_code": "EX79CB-SN6AE0",
+      "date": "2026-11-17",
+      "start_time": "14:00:00",
+      "end_time": "15:00:00",
+      "label": "Sesi 2",
+      "session_members": [
+        {
+          "label": "Jalur 1",
+          "price": 120000,
+          "member_name": "Desy Natalia",
+          "session_detail_code": "EX79CB-SN6AE0-SD70FF",
+          "available_quota": 3
+        },
+        {
+          "label": "Jalur 2",
+          "price": 120000,
+          "member_name": "Fiony Alveria",
+          "session_detail_code": "EX79CB-SN6AE0-SD0200",
+          "available_quota": 2
+        }
+      ]
+    }
+  ]
+}
