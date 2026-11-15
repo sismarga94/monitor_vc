@@ -1,25 +1,20 @@
 package com.example.jkt48bonusmonitor.data.repository
 
-import android.content.Context
 import com.example.jkt48bonusmonitor.data.api.BonusApiClient
 import com.example.jkt48bonusmonitor.data.datastore.AppPreferences
 import com.example.jkt48bonusmonitor.data.history.HistoryEntry
 import com.example.jkt48bonusmonitor.data.history.HistoryRepository
 import com.example.jkt48bonusmonitor.domain.model.ApiResult
-import com.example.jkt48bonusmonitor.domain.model.MemberQuota
+import com.example.jkt48bonusmonitor.domain.model.MemberSlot
 import com.example.jkt48bonusmonitor.notification.NotificationHelper
+import com.example.jkt48bonusmonitor.notification.QUOTA_THRESHOLD
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-private const val TARGET_MEMBER = "Astrella Virgiananda"
-private const val QUOTA_THRESHOLD = 5
 private val TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
 
-/**
- * Coordinates API calls, history writes, notification evaluation, and DataStore updates.
- */
 class BonusMonitorRepository(
     private val appPreferences: AppPreferences,
     private val apiClient: BonusApiClient,
@@ -28,69 +23,80 @@ class BonusMonitorRepository(
 ) {
 
     /**
-     * Performs a full monitoring check cycle:
-     * 1. Reads the current exclusive ID from DataStore.
-     * 2. Calls the API.
-     * 3. Updates DataStore with latest quota and timestamp.
-     * 4. Evaluates notification condition with deduplication.
-     * 5. Writes result to history.
+     * Full check cycle:
+     * 1. Fetches all Astrella slots from the API.
+     * 2. Evaluates per-slot notification with deduplication.
+     * 3. Writes one history entry per slot.
+     * 4. Updates DataStore.
      *
-     * Thread-safe: network I/O is dispatched to [Dispatchers.IO].
-     *
-     * @return A human-readable status message for the UI.
+     * @return Human-readable status for the UI.
      */
-    suspend fun performCheck(): String = withContext(Dispatchers.IO) {
+    suspend fun performCheck(): CheckResult = withContext(Dispatchers.IO) {
         val exclusiveId = appPreferences.getExclusiveId()
         val now = LocalDateTime.now().format(TIMESTAMP_FMT)
 
-        val result = apiClient.fetchBonusQuota(exclusiveId)
-
-        when (result) {
+        when (val result = apiClient.fetchBonusQuota(exclusiveId)) {
             is ApiResult.Error -> {
                 appPreferences.setLastCheckTimestamp(now)
-                "Error: ${result.message}"
+                CheckResult(slots = emptyList(), statusMessage = "Error: ${result.message}")
             }
 
             is ApiResult.Success -> {
-                val memberQuota: MemberQuota? = result.memberQuota
                 appPreferences.setLastCheckTimestamp(now)
+                val slots = result.slots
 
-                if (memberQuota == null) {
-                    // Member not found in this exclusive
-                    appPreferences.setLatestAvailableQuota(null)
-                    return@withContext "Member '$TARGET_MEMBER' not found in exclusive $exclusiveId"
-                }
-
-                val quota = memberQuota.availableQuota
-                appPreferences.setLatestAvailableQuota(quota)
-
-                // Evaluate notification with deduplication
-                val lastNotifiedQuota = appPreferences.getLastNotifiedQuota()
-                val notified = notificationHelper.evaluateAndNotify(quota, lastNotifiedQuota)
-                if (notified) {
-                    appPreferences.setLastNotifiedQuota(quota)
-                }
-
-                // Write history entry
-                val status = quotaStatus(quota)
-                historyRepository.addEntry(
-                    HistoryEntry(
-                        exclusiveId = exclusiveId,
-                        memberName = TARGET_MEMBER,
-                        availableQuota = quota,
-                        timestamp = now,
-                        status = status
+                if (slots.isEmpty()) {
+                    return@withContext CheckResult(
+                        slots = emptyList(),
+                        statusMessage = "Astrella not in exclusive $exclusiveId"
                     )
-                )
+                }
 
-                "OK – quota: $quota"
+                // Per-slot notification deduplication
+                val notifiedMap = appPreferences.getNotifiedQuotaMap()
+                val updatedMap = notificationHelper.evaluateAndNotify(slots, notifiedMap)
+                if (updatedMap != notifiedMap) {
+                    appPreferences.setNotifiedQuotaMap(updatedMap)
+                }
+
+                // Write one history entry per slot
+                slots.forEach { slot ->
+                    historyRepository.addEntry(
+                        HistoryEntry(
+                            exclusiveId = exclusiveId,
+                            memberName = slot.memberName,
+                            availableQuota = slot.availableQuota,
+                            timestamp = now,
+                            status = slot.quotaStatus(),
+                            sessionCode = slot.sessionCode,
+                            sessionDetailCode = slot.sessionDetailCode,
+                            sessionDate = slot.sessionDate,
+                            sessionLabel = slot.sessionLabel,
+                            slotLabel = slot.slotLabel
+                        )
+                    )
+                }
+
+                val lowCount = slots.count { it.availableQuota < QUOTA_THRESHOLD }
+                val statusMsg = if (lowCount > 0) {
+                    "⚠ $lowCount slot(s) low — checked ${slots.size} slots"
+                } else {
+                    "OK — ${slots.size} slot(s) checked, all normal"
+                }
+
+                CheckResult(slots = slots, statusMessage = statusMsg)
             }
         }
     }
+}
 
-    private fun quotaStatus(quota: Int): String = when {
-        quota == 0 -> "SOLD_OUT"
-        quota < QUOTA_THRESHOLD -> "LOW"
-        else -> "NORMAL"
-    }
+data class CheckResult(
+    val slots: List<MemberSlot>,
+    val statusMessage: String
+)
+
+private fun MemberSlot.quotaStatus(): String = when {
+    availableQuota == 0 -> "SOLD_OUT"
+    availableQuota < QUOTA_THRESHOLD -> "LOW"
+    else -> "NORMAL"
 }

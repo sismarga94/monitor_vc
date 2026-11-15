@@ -3,55 +3,48 @@
   "message": "Berhasil mendapatkan data",
   "data": [
     {
-      "exclusive_session_code": "EX79CB-SN6ADF",
-      "date": "2026-11-16",
-      "start_time": "16:30:00",
-      "end_time": "17:30:00",
+      "exclusive_session_code": "EX79CB-SNBEED",
+      "date": "2026-11-22",
+      "start_time": "11:45:00",
+      "end_time": "12:45:00",
       "label": "Sesi 1",
       "session_members": [
         {
           "label": "Jalur 1",
           "price": 120000,
-          "member_name": "Desy Natalia",
-          "session_detail_code": "EX79CB-SN6ADF-SD70EC",
+          "member_name": "Mikaela Kusjanto",
+          "session_detail_code": "EX79CB-SNBEED-SD6D3F",
           "available_quota": 5
         },
         {
-          "label": "Jalur 2",
+          "label": "Jalur 4",
           "price": 120000,
           "member_name": "Astrella Virgiananda",
-          "session_detail_code": "EX79CB-SN6ADF-SD0189",
+          "session_detail_code": "EX79CB-SNBEED-SD392E",
           "available_quota": 7
-        },
-        {
-          "label": "Jalur 3",
-          "price": 120000,
-          "member_name": "Abigail Rachel",
-          "session_detail_code": "EX79CB-SN6ADF-SDB8A1",
-          "available_quota": 0
         }
       ]
     },
     {
-      "exclusive_session_code": "EX79CB-SN6AE0",
-      "date": "2026-11-17",
-      "start_time": "14:00:00",
-      "end_time": "15:00:00",
+      "exclusive_session_code": "EX79CB-SND4DA",
+      "date": "2026-11-22",
+      "start_time": "13:15:00",
+      "end_time": "14:15:00",
       "label": "Sesi 2",
       "session_members": [
         {
           "label": "Jalur 1",
           "price": 120000,
-          "member_name": "Desy Natalia",
-          "session_detail_code": "EX79CB-SN6AE0-SD70FF",
-          "available_quota": 3
+          "member_name": "Mikaela Kusjanto",
+          "session_detail_code": "EX79CB-SND4DA-SD50A4",
+          "available_quota": 5
         },
         {
-          "label": "Jalur 2",
+          "label": "Jalur 4",
           "price": 120000,
-          "member_name": "Fiony Alveria",
-          "session_detail_code": "EX79CB-SN6AE0-SD0200",
-          "available_quota": 2
+          "member_name": "Astrella Virgiananda",
+          "session_detail_code": "EX79CB-SND4DA-SDF598",
+          "available_quota": 5
         }
       ]
     }

@@ -12,21 +12,14 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.example.jkt48bonusmonitor.MainActivity
 import com.example.jkt48bonusmonitor.R
+import com.example.jkt48bonusmonitor.domain.model.MemberSlot
 
 private const val CHANNEL_ID = "bonus_quota_alerts"
-private const val NOTIFICATION_ID = 1001
-private const val TARGET_MEMBER = "Astrella Virgiananda"
-private const val QUOTA_THRESHOLD = 5
+private const val BASE_NOTIFICATION_ID = 1001
+const val QUOTA_THRESHOLD = 5
 
-/**
- * Handles all notification creation and channel setup.
- */
 class NotificationHelper(private val context: Context) {
 
-    /**
-     * Creates the notification channel. Must be called before posting any notification.
-     * Safe to call multiple times.
-     */
     fun createNotificationChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
@@ -40,10 +33,6 @@ class NotificationHelper(private val context: Context) {
         manager.createNotificationChannel(channel)
     }
 
-    /**
-     * Returns true if the app has permission to post notifications.
-     * On Android < 13 (API 32), notifications are always permitted unless the channel is blocked.
-     */
     fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(
@@ -56,50 +45,62 @@ class NotificationHelper(private val context: Context) {
     }
 
     /**
-     * Evaluates the notification condition and sends a notification if warranted.
+     * Evaluates all slots and sends one notification per slot that:
+     * - has available_quota < QUOTA_THRESHOLD
+     * - has a quota different from what was last notified for that slot
      *
-     * Deduplication logic (must be persisted externally via DataStore):
-     * - Only notify if [availableQuota] < [QUOTA_THRESHOLD]
-     * - Only notify if [availableQuota] != [lastNotifiedQuota]
-     * This function is pure — it does not read or write DataStore itself.
-     *
-     * @param availableQuota  The current quota value.
-     * @param lastNotifiedQuota The quota value at the time of the last notification (null = never).
-     * @return true if a notification was sent.
+     * @param slots          Current slots from the API.
+     * @param notifiedMap    Map of sessionDetailCode -> last notified quota.
+     * @return Updated map (only entries that triggered a new notification are updated).
      */
-    fun evaluateAndNotify(availableQuota: Int, lastNotifiedQuota: Int?): Boolean {
-        val shouldNotify = availableQuota < QUOTA_THRESHOLD &&
-            availableQuota != lastNotifiedQuota
+    fun evaluateAndNotify(
+        slots: List<MemberSlot>,
+        notifiedMap: Map<String, Int>
+    ): Map<String, Int> {
+        if (!hasNotificationPermission()) return notifiedMap
 
-        if (!shouldNotify) return false
-        if (!hasNotificationPermission()) return false
+        val updatedMap = notifiedMap.toMutableMap()
 
-        sendLowQuotaNotification(availableQuota)
-        return true
+        slots.forEach { slot ->
+            val lastNotified = notifiedMap[slot.sessionDetailCode]
+            val shouldNotify = slot.availableQuota < QUOTA_THRESHOLD &&
+                slot.availableQuota != lastNotified
+
+            if (shouldNotify) {
+                sendSlotNotification(slot)
+                updatedMap[slot.sessionDetailCode] = slot.availableQuota
+            }
+        }
+
+        return updatedMap
     }
 
-    private fun sendLowQuotaNotification(availableQuota: Int) {
+    private fun sendSlotNotification(slot: MemberSlot) {
         val tapIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            slot.sessionDetailCode.hashCode(),
             tapIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Use a stable unique ID per slot so each slot gets its own notification
+        val notifId = BASE_NOTIFICATION_ID + slot.sessionDetailCode.hashCode().and(0xFFFF)
+
+        val body = "${slot.sessionDate} ${slot.sessionLabel} (${slot.slotLabel}) — Available quota: ${slot.availableQuota}"
+
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("$TARGET_MEMBER - Low Bonus Quota!")
-            .setContentText("Available quota: $availableQuota")
-            .setStyle(NotificationCompat.BigTextStyle()
-                .bigText("Available quota: $availableQuota"))
+            .setContentTitle("${slot.memberName} - Low Bonus Quota!")
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
 
-        NotificationManagerCompat.from(context).notify(NOTIFICATION_ID, notification)
+        NotificationManagerCompat.from(context).notify(notifId, notification)
     }
 }

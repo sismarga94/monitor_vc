@@ -1,7 +1,7 @@
 package com.example.jkt48bonusmonitor.data.api
 
 import com.example.jkt48bonusmonitor.domain.model.ApiResult
-import com.example.jkt48bonusmonitor.domain.model.MemberQuota
+import com.example.jkt48bonusmonitor.domain.model.MemberSlot
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -9,12 +9,10 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 private const val BASE_URL = "https://jkt48.com/api/v1/exclusives/%s/bonus?lang=id"
-private const val TARGET_MEMBER = "Astrella Virgiananda"
+const val TARGET_MEMBER = "Astrella Virgiananda"
 
 /**
  * HTTP client for fetching bonus quota data from the JKT48 API.
- * Uses OkHttp with explicit timeouts. All network I/O must be called
- * from a background thread / coroutine.
  */
 class BonusApiClient {
 
@@ -31,11 +29,7 @@ class BonusApiClient {
     }
 
     /**
-     * Fetches the bonus quota for [TARGET_MEMBER] from the API.
-     *
-     * @param exclusiveId The exclusive ID to query (e.g. "EX79CB").
-     * @return [ApiResult.Success] with the matching [MemberQuota] (nullable if member not found),
-     *         or [ApiResult.Error] on any failure.
+     * Fetches ALL slots for [TARGET_MEMBER] across every session in this exclusive.
      */
     fun fetchBonusQuota(exclusiveId: String): ApiResult {
         if (exclusiveId.isBlank()) {
@@ -61,7 +55,6 @@ class BonusApiClient {
             if (!response.isSuccessful) {
                 return ApiResult.Error("HTTP ${response.code}: ${response.message}")
             }
-
             if (body.isNullOrBlank()) {
                 return ApiResult.Error("Empty response body")
             }
@@ -75,10 +68,11 @@ class BonusApiClient {
     }
 
     /**
-     * Parses the JSON response body and finds [TARGET_MEMBER].
-     * Searches all sessions and all session_members for exact name match.
+     * Parses the JSON body and returns ALL slots matching [TARGET_MEMBER].
+     * Searches every session in data[].session_members[].
      */
     fun parseResponse(jsonBody: String): ApiResult {
+        if (jsonBody.isBlank()) return ApiResult.Error("Empty response body")
         return try {
             val apiResponse = json.decodeFromString<BonusApiResponse>(jsonBody)
 
@@ -86,20 +80,24 @@ class BonusApiClient {
                 return ApiResult.Error("API returned status=false: ${apiResponse.message}")
             }
 
-            val memberDto = apiResponse.data
-                .flatMap { it.sessionMembers }
-                .firstOrNull { it.memberName == TARGET_MEMBER }
-
-            if (memberDto == null) {
-                return ApiResult.Success(null)
+            val slots = apiResponse.data.flatMap { session ->
+                session.sessionMembers
+                    .filter { it.memberName == TARGET_MEMBER }
+                    .map { member ->
+                        MemberSlot(
+                            memberName = member.memberName,
+                            availableQuota = member.availableQuota,
+                            sessionCode = session.exclusiveSessionCode,
+                            sessionDetailCode = member.sessionDetailCode,
+                            sessionDate = session.date,
+                            sessionLabel = session.label,
+                            sessionStartTime = session.startTime,
+                            slotLabel = member.label
+                        )
+                    }
             }
 
-            ApiResult.Success(
-                MemberQuota(
-                    memberName = memberDto.memberName,
-                    availableQuota = memberDto.availableQuota
-                )
-            )
+            ApiResult.Success(slots)
         } catch (e: Exception) {
             ApiResult.Error("JSON parse error: ${e.message}")
         }

@@ -3,25 +3,50 @@
   "message": "Berhasil mendapatkan data",
   "data": [
     {
-      "exclusive_session_code": "EX79CB-SN6ADF",
-      "date": "2026-11-16",
-      "start_time": "16:30:00",
-      "end_time": "17:30:00",
+      "exclusive_session_code": "EX79CB-SNBEED",
+      "date": "2026-11-22",
+      "start_time": "11:45:00",
+      "end_time": "12:45:00",
       "label": "Sesi 1",
       "session_members": [
         {
-          "label": "Jalur 1",
-          "price": 120000,
-          "member_name": "Desy Natalia",
-          "session_detail_code": "EX79CB-SN6ADF-SD70EC",
-          "available_quota": 5
-        },
-        {
-          "label": "Jalur 2",
+          "label": "Jalur 4",
           "price": 120000,
           "member_name": "Astrella Virgiananda",
-          "session_detail_code": "EX79CB-SN6ADF-SD0189",
+          "session_detail_code": "EX79CB-SNBEED-SD392E",
           "available_quota": 4
+        }
+      ]
+    },
+    {
+      "exclusive_session_code": "EX79CB-SND4DA",
+      "date": "2026-11-22",
+      "start_time": "13:15:00",
+      "end_time": "14:15:00",
+      "label": "Sesi 2",
+      "session_members": [
+        {
+          "label": "Jalur 4",
+          "price": 120000,
+          "member_name": "Astrella Virgiananda",
+          "session_detail_code": "EX79CB-SND4DA-SDF598",
+          "available_quota": 3
+        }
+      ]
+    },
+    {
+      "exclusive_session_code": "EX79CB-SN12CE",
+      "date": "2026-11-22",
+      "start_time": "14:45:00",
+      "end_time": "15:45:00",
+      "label": "Sesi 3",
+      "session_members": [
+        {
+          "label": "Jalur 4",
+          "price": 120000,
+          "member_name": "Astrella Virgiananda",
+          "session_detail_code": "EX79CB-SN12CE-SD8904",
+          "available_quota": 5
         }
       ]
     }

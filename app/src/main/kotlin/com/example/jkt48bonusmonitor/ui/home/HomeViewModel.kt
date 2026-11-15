@@ -55,20 +55,18 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             combine(
                 appPreferences.exclusiveIdFlow,
                 appPreferences.monitoringEnabledFlow,
-                appPreferences.lastCheckTimestampFlow,
-                appPreferences.latestAvailableQuotaFlow
-            ) { exclusiveId, monitoringEnabled, lastCheck, latestQuota ->
-                AppState(
-                    exclusiveId = exclusiveId,
-                    monitoringStatus = if (monitoringEnabled) MonitoringStatus.ACTIVE else MonitoringStatus.STOPPED,
-                    lastCheckTimestamp = lastCheck,
-                    latestAvailableQuota = latestQuota,
-                    lastRequestStatus = _uiState.value.lastRequestStatus,
-                    isLoading = _uiState.value.isLoading
-                )
-            }.collect { state ->
-                _uiState.value = state
-                _exclusiveIdInput.value = state.exclusiveId
+                appPreferences.lastCheckTimestampFlow
+            ) { exclusiveId, monitoringEnabled, lastCheck ->
+                Triple(exclusiveId, monitoringEnabled, lastCheck)
+            }.collect { (exclusiveId, monitoringEnabled, lastCheck) ->
+                _uiState.update { current ->
+                    current.copy(
+                        exclusiveId = exclusiveId,
+                        monitoringStatus = if (monitoringEnabled) MonitoringStatus.ACTIVE else MonitoringStatus.STOPPED,
+                        lastCheckTimestamp = lastCheck
+                    )
+                }
+                _exclusiveIdInput.value = exclusiveId
             }
         }
     }
@@ -81,19 +79,13 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onExclusiveIdChange(value: String) {
         _exclusiveIdInput.value = value
-        if (value.isNotBlank()) {
-            _exclusiveIdError.value = null
-        }
+        if (value.isNotBlank()) _exclusiveIdError.value = null
     }
 
     fun startMonitoring() {
         val id = _exclusiveIdInput.value.trim()
-        if (id.isBlank()) {
-            _exclusiveIdError.value = "Exclusive ID cannot be empty"
-            return
-        }
+        if (id.isBlank()) { _exclusiveIdError.value = "Exclusive ID cannot be empty"; return }
         _exclusiveIdError.value = null
-
         viewModelScope.launch {
             appPreferences.setExclusiveId(id)
             appPreferences.setMonitoringEnabled(true)
@@ -112,19 +104,17 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
 
     fun checkNow() {
         val id = _exclusiveIdInput.value.trim()
-        if (id.isBlank()) {
-            _exclusiveIdError.value = "Exclusive ID cannot be empty"
-            return
-        }
+        if (id.isBlank()) { _exclusiveIdError.value = "Exclusive ID cannot be empty"; return }
         _exclusiveIdError.value = null
-
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, lastRequestStatus = "Checking…") }
             appPreferences.setExclusiveId(id)
-
-            val statusMsg = repository.performCheck()
-
-            _uiState.update { it.copy(isLoading = false, lastRequestStatus = statusMsg) }
+            val result = repository.performCheck()
+            _uiState.update { it.copy(
+                isLoading = false,
+                lastRequestStatus = result.statusMessage,
+                slots = result.slots
+            )}
             loadHistory()
         }
     }
@@ -134,9 +124,5 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
             historyRepo.clearHistory()
             _history.value = emptyList()
         }
-    }
-
-    fun refreshHistory() {
-        loadHistory()
     }
 }
